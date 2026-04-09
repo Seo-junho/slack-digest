@@ -1,0 +1,9 @@
+{
+  "name": "slack-digest",
+  "version": "0.1.0",
+  "description": "Slack channel ingest skill — pulls messages + threads + replies into normalized JSONL, with recipes for FAQ, daily digest, and knowledge-base publishing.",
+  "author": {
+    "name": "Seo Junho"
+  },
+  "homepage": "https://github.com/Seo-junho/slack-digest"
+}

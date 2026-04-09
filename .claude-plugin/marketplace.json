@@ -1,0 +1,21 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "slack-digest-marketplace",
+  "description": "Personal marketplace hosting the slack-digest plugin",
+  "owner": {
+    "name": "Seo Junho",
+    "email": "juno@musinsa.com"
+  },
+  "plugins": [
+    {
+      "name": "slack-digest",
+      "description": "Slack channel ingest skill — pulls messages + threads + replies into normalized JSONL, with recipes for FAQ, daily digest, and knowledge-base publishing.",
+      "author": {
+        "name": "Seo Junho"
+      },
+      "source": "./",
+      "category": "productivity",
+      "homepage": "https://github.com/Seo-junho/slack-digest"
+    }
+  ]
+}

@@ -95,11 +95,11 @@ After inputs are resolved (or defaulted), go directly to Step 0 → Step 4 of th
 
 ## Step 0 — Preflight
 
-1. **Token**. The fetch script auto-loads `$SKILL_DIR/.env` (`SLACK_USER_TOKEN=xoxp-...`). If `.env` is absent AND `$SLACK_USER_TOKEN` is not exported, tell the user to create `.env` from `.env.example` and stop.
+1. **Token**. The fetch script auto-loads `$SKILL_ROOT/.env` (`SLACK_USER_TOKEN=xoxp-...`). If `.env` is absent AND `$SLACK_USER_TOKEN` is not exported, tell the user to create `.env` from `.env.example` and stop.
 
 2. **Sanity check** the token:
    ```bash
-   set -a; source "$SKILL_DIR/.env" 2>/dev/null; set +a
+   set -a; source "$SKILL_ROOT/.env" 2>/dev/null; set +a
    curl -s -H "Authorization: Bearer $SLACK_USER_TOKEN" https://slack.com/api/auth.test
    ```
    If `ok:false`, surface `error` and stop.
@@ -121,7 +121,7 @@ Channel must be **explicitly named** — never iterate across the workspace.
 ## Step 2 — Collect
 
 ```bash
-python3 "$SKILL_DIR/scripts/fetch_slack.py" \
+python3 "$SKILL_ROOT/scripts/fetch_slack.py" \
   --channel "<channel>" \
   --months 3 \
   --out "./.slack-digest/<channel>-<yyyymmdd>"
@@ -195,4 +195,4 @@ slack-digest/
     └── knowledge-base.md
 ```
 
-`$SKILL_DIR` = the directory containing this `SKILL.md`.
+`$SKILL_ROOT` = the directory containing this `SKILL.md` (`$CLAUDE_PLUGIN_ROOT/skills/slack-digest`).
