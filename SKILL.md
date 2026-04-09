@@ -1,6 +1,28 @@
 ---
 name: slack-digest
-description: Collect Slack channel data (messages + threads + replies + permalinks + resolved user names) over an arbitrary time window using a Slack user token, and expose it as normalized JSONL for downstream use. Use when the user asks to "fetch a Slack channel", "pull slack history", "ingest slack threads", "슬랙 채널 수집/분석/요약", "슬랙 FAQ 정리", "슬랙 대화 긁어줘", or provides a Slack channel name/ID/archive URL with any request that needs its conversation data. This skill owns the **collection + normalization** layer. Downstream operations (FAQ generation, daily digest, knowledge-base publishing via ctk/pika, etc.) are implemented as **recipes** under `recipes/` — read the relevant recipe file after collection to execute the user's actual goal.
+description: |
+  Slack channel ingest + analysis skill. Pulls messages, threads, replies, permalinks,
+  and resolved user names from any Slack channel over a time window using a Slack user
+  token (xoxp-), emits normalized JSONL, then hands off to a recipe
+  (FAQ / daily digest / knowledge-base publish / raw).
+
+  **Invoke this skill whenever the user mentions Slack in a data/analysis/summary context**,
+  even with minimal input. Trigger phrases include (non-exhaustive):
+    - "슬랙 채널 분석", "슬랙 분석해줘", "슬랙 대화 요약", "슬랙 FAQ", "슬랙 수집",
+      "슬랙 대화 긁어줘", "슬랙 채널 정리", "슬랙 스레드 요약", "슬랙에서 뽑아줘"
+    - "analyze slack", "slack channel summary", "fetch slack", "pull slack history",
+      "ingest slack", "slack to faq", "summarize slack threads"
+    - Any Slack archive URL (https://*.slack.com/archives/C...) or channel ID
+      (C0XXXXXXXX / G0XXXXXXXX) appearing with an analysis/summary/dump intent
+    - Any mention of `xoxp-` token + "channel"
+
+  When invoked with only a vague instruction (e.g. "슬랙 채널 분석해줘"), DO NOT ask a
+  long list of questions up-front. Instead, read the "Minimal-context invocation" section
+  of SKILL.md and follow its single-consolidated-question protocol.
+
+  This skill owns the **collection + normalization** layer only. Downstream operations
+  (FAQ, digest, Confluence/Notion/Pika publish) live as recipes in `recipes/` — read the
+  matching recipe file after collection.
 ---
 
 # slack-digest
@@ -16,6 +38,58 @@ Think of this skill as the Slack **ingest layer**. Recipes are the cookbook that
 3. Hand off to the matching recipe file in `recipes/`. **Read the recipe before executing it** — each recipe has its own inputs, prompting rules, and output format.
 
 If no clear recipe matches, stop after Step 3 and give the user the path to `threads.jsonl` so they can decide.
+
+## Minimal-context invocation
+
+The user will often invoke this skill with a one-liner like:
+
+- "슬랙 채널 분석해줘"
+- "슬랙 대화 요약"
+- "analyze slack"
+
+When that happens, **do not** interrogate them with 5 separate questions. Follow this protocol:
+
+### 1. Scan the conversation context first
+
+Before asking anything, reuse whatever context is already available:
+
+- **Channel** — is there a Slack archive URL, `#channelname`, or `C0XXXXXXXX` ID anywhere in the conversation, cwd, clipboard hint, recent files, or the user's prior turns? If yes, use it.
+- **Time window** — did the user mention "3개월", "지난주", "last month", "오늘", a date? If yes, use it. Otherwise default to **last 3 months**.
+- **Goal / recipe** — did the user say "FAQ", "요약", "정리", "Confluence", "daily", "digest"? Map to a recipe:
+  - "FAQ" / "정리" / "문서화" → `recipes/faq.md`
+  - "daily" / "weekly" / "오늘 있었던" / "어제" / "recap" → `recipes/daily-digest.md`
+  - "Confluence" / "Notion" / "올려줘" / "publish" → `recipes/faq.md` → `recipes/knowledge-base.md`
+  - "raw" / "json만" / "데이터만" → stop after collection
+  - Nothing specified → default to `recipes/faq.md` (most common use case)
+- **Token** — check `.env` and `$SLACK_USER_TOKEN`. If neither exists, that's the first blocker.
+
+### 2. Ask ONE consolidated question for what's still missing
+
+Format (adapt to the user's language):
+
+> 슬랙 채널 분석 시작할게요. 아래만 확인해주세요:
+>
+> 1. **채널**: (#name / C01XXXXXX / archive URL)
+> 2. **기간**: 지난 3개월 (default) — 다르면 알려주세요
+> 3. **목적**: FAQ 문서 (default) / daily recap / Confluence 발행 / raw JSONL
+>
+> 답 주시면 바로 수집 시작합니다. 토큰은 `.env` 에서 자동 로드됩니다.
+
+- Only include lines for values you couldn't infer. If you already know the channel, don't ask again.
+- Accept **partial answers** — if the user replies just "#foo", fill defaults for the rest and confirm in one line before running.
+- If the user replies with only "ㄱ" / "go" / "진행" and you still have blanks, assume **all defaults** (3 months, FAQ) and proceed — announce the assumptions in one line before running.
+
+### 3. Run
+
+After inputs are resolved (or defaulted), go directly to Step 0 → Step 4 of the main pipeline below. Don't re-confirm again unless something changes.
+
+### Anti-patterns (don't do these)
+
+- ❌ Asking "which workspace?" — user tokens are workspace-scoped, so this is always redundant.
+- ❌ Asking "what language should the output be?" — default to the channel's primary language.
+- ❌ Asking about category schemes, clustering strategy, embeddings, etc. — those are recipe implementation details, not user decisions.
+- ❌ Running `conversations.list` to browse channels — always require an explicit channel from the user.
+- ❌ Blocking on missing inputs when sensible defaults exist.
 
 ---
 
