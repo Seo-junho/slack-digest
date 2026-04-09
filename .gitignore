@@ -1,0 +1,5 @@
+.slack-digest/
+*.pyc
+__pycache__/
+.DS_Store
+.env
